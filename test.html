@@ -1,0 +1,213 @@
+<div class="highlight"><pre><span class="kn">import</span> <span class="nn">django</span>
+<span class="n">django</span><span class="o">.</span><span class="n">setup</span><span class="p">()</span>
+
+<span class="kn">from</span> <span class="nn">django.db</span> <span class="kn">import</span> <span class="n">connections</span>
+<span class="kn">from</span> <span class="nn">django.db.utils</span> <span class="kn">import</span> <span class="n">ConnectionDoesNotExist</span>
+
+<span class="kn">from</span> <span class="nn">content.models</span> <span class="kn">import</span> <span class="n">NewsItem</span><span class="p">,</span> <span class="n">PressRelease</span><span class="p">,</span> <span class="n">OtherContent</span>
+
+<span class="c"># Row IDs for the data in the current database.</span>
+<span class="n">OLD_ID</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">TITLE</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">SUB_TITLE</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="n">BODY</span> <span class="o">=</span> <span class="mi">3</span>
+<span class="n">AUTHOR</span> <span class="o">=</span> <span class="mi">4</span>
+<span class="n">UPDATED</span> <span class="o">=</span> <span class="mi">5</span>
+<span class="n">TYPE</span> <span class="o">=</span> <span class="mi">6</span>
+<span class="n">PUBLISH</span> <span class="o">=</span> <span class="mi">8</span>
+<span class="n">LINKTEXT</span> <span class="o">=</span> <span class="mi">9</span>
+<span class="n">DOC</span> <span class="o">=</span> <span class="mi">16</span>
+<span class="n">LINK</span> <span class="o">=</span> <span class="mi">20</span>
+<span class="n">SUMMARY</span> <span class="o">=</span> <span class="mi">22</span>
+<span class="n">DATE</span> <span class="o">=</span> <span class="mi">23</span>
+<span class="n">PICTURE</span> <span class="o">=</span> <span class="mi">28</span>
+<span class="n">SOURCE</span> <span class="o">=</span> <span class="mi">34</span>
+<span class="n">CONTACT</span> <span class="o">=</span> <span class="mi">35</span>
+<span class="n">CREATED</span> <span class="o">=</span> <span class="mi">40</span>
+<span class="n">SOURCEURL</span> <span class="o">=</span> <span class="mi">42</span>
+<span class="n">MEDIA_HTML</span> <span class="o">=</span> <span class="mi">57</span>
+<span class="n">MEDIA_THUMB</span> <span class="o">=</span> <span class="mi">59</span>
+
+
+<span class="k">def</span> <span class="nf">setup_cursor</span><span class="p">():</span>
+    <span class="c"># Get a cursor for the legacy database defined in the django project settings.</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">cursor</span> <span class="o">=</span> <span class="n">connections</span><span class="p">[</span><span class="s">&#39;legacy&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">cursor</span>
+    <span class="k">except</span> <span class="n">ConnectionDoesNotExist</span><span class="p">:</span>
+        <span class="k">print</span> <span class="s">&quot;Legacy database is not configured&quot;</span>
+        <span class="k">return</span> <span class="bp">None</span>
+
+
+<span class="k">def</span> <span class="nf">import_news_items</span><span class="p">():</span>
+    <span class="n">cursor</span> <span class="o">=</span> <span class="n">setup_cursor</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">cursor</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">return</span>
+    <span class="c">## it&#39;s important selecting the id field, so that we can keep the publisher - book relationship</span>
+    <span class="n">sql</span> <span class="o">=</span> <span class="s">&quot;&quot;&quot;select * from articles left join articletype on articles.type = articletype.id WHERE articles.publish = 1 AND (articletype.parent = 42 or articletype.id = 42);&quot;&quot;&quot;</span>
+    <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">():</span>
+        <span class="n">old_id</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">OLD_ID</span><span class="p">]</span>
+        <span class="n">title</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">TITLE</span><span class="p">]</span>
+        <span class="n">subtitle</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">SUB_TITLE</span><span class="p">]</span>
+        <span class="n">body</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">BODY</span><span class="p">]</span>
+        <span class="nb">type</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">TYPE</span><span class="p">]</span>
+        <span class="n">summary</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">SUMMARY</span><span class="p">]</span>
+        <span class="n">date</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">DATE</span><span class="p">]</span>
+        <span class="n">datecreated</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">CREATED</span><span class="p">]</span>
+        <span class="n">author</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">AUTHOR</span><span class="p">]</span>
+        <span class="n">updated</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">UPDATED</span><span class="p">]</span>
+        <span class="n">sourceurl</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">SOURCEURL</span><span class="p">]</span>
+        <span class="n">publish</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">PUBLISH</span><span class="p">]</span>
+        <span class="n">linktext</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">LINKTEXT</span><span class="p">]</span>
+        <span class="n">link</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">LINK</span><span class="p">]</span>
+        <span class="n">docname</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">DOC</span><span class="p">]</span>
+        <span class="n">picture</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">PICTURE</span><span class="p">]</span>
+        <span class="n">source</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">SOURCE</span><span class="p">]</span>
+        <span class="n">contact</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">CONTACT</span><span class="p">]</span>
+        <span class="n">media</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">MEDIA_HTML</span><span class="p">]</span>
+        <span class="n">media_thumb_url</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">MEDIA_THUMB</span><span class="p">]</span>
+        <span class="n">news_item</span> <span class="o">=</span> <span class="n">NewsItem</span><span class="p">(</span>
+            <span class="n">old_id</span><span class="o">=</span><span class="n">old_id</span><span class="p">,</span>
+            <span class="n">title</span><span class="o">=</span><span class="n">title</span><span class="p">,</span>
+            <span class="n">subtitle</span><span class="o">=</span><span class="n">subtitle</span><span class="p">,</span>
+            <span class="n">body</span><span class="o">=</span><span class="n">body</span><span class="p">,</span>
+            <span class="n">old_type</span><span class="o">=</span><span class="nb">type</span><span class="p">,</span>
+            <span class="n">summary</span><span class="o">=</span><span class="n">summary</span><span class="p">,</span>
+            <span class="n">date</span><span class="o">=</span><span class="n">date</span><span class="p">,</span>
+            <span class="n">datecreated</span><span class="o">=</span><span class="n">datecreated</span><span class="p">,</span>
+            <span class="n">author</span><span class="o">=</span><span class="n">author</span><span class="p">,</span>
+            <span class="n">updated</span><span class="o">=</span><span class="n">updated</span><span class="p">,</span>
+            <span class="n">sourceurl</span><span class="o">=</span><span class="n">sourceurl</span><span class="p">,</span>
+            <span class="n">publish</span><span class="o">=</span><span class="n">publish</span><span class="p">,</span>
+            <span class="n">linktext</span><span class="o">=</span><span class="n">linktext</span><span class="p">,</span>
+            <span class="n">link</span><span class="o">=</span><span class="n">link</span><span class="p">,</span>
+            <span class="n">docname</span><span class="o">=</span><span class="n">docname</span><span class="p">,</span>
+            <span class="n">picture</span><span class="o">=</span><span class="n">picture</span><span class="p">,</span>
+            <span class="n">source</span><span class="o">=</span><span class="n">source</span><span class="p">,</span>
+            <span class="n">contact</span><span class="o">=</span><span class="n">contact</span><span class="p">,</span>
+            <span class="n">media</span><span class="o">=</span><span class="n">media</span><span class="p">,</span>
+            <span class="n">media_thumb_url</span><span class="o">=</span><span class="n">media_thumb_url</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">news_item</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">print</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">import_press_release</span><span class="p">():</span>
+    <span class="n">cursor</span> <span class="o">=</span> <span class="n">setup_cursor</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">cursor</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">return</span>
+    <span class="n">sql</span> <span class="o">=</span> <span class="s">&quot;&quot;&quot;select * from articles left join articletype on articles.type = articletype.id WHERE articles.publish=1 AND (articletype.parent = 16 or articletype.id = 16);&quot;&quot;&quot;</span>
+    <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">():</span>
+        <span class="n">old_id</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">OLD_ID</span><span class="p">]</span>
+        <span class="n">title</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">TITLE</span><span class="p">]</span>
+        <span class="n">subtitle</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">SUB_TITLE</span><span class="p">]</span>
+        <span class="n">body</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">BODY</span><span class="p">]</span>
+        <span class="nb">type</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">TYPE</span><span class="p">]</span>
+        <span class="n">summary</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">SUMMARY</span><span class="p">]</span>
+        <span class="n">date</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">DATE</span><span class="p">]</span>
+        <span class="n">datecreated</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">CREATED</span><span class="p">]</span>
+        <span class="n">author</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">AUTHOR</span><span class="p">]</span>
+        <span class="n">updated</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">UPDATED</span><span class="p">]</span>
+        <span class="n">sourceurl</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">SOURCEURL</span><span class="p">]</span>
+        <span class="n">publish</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">PUBLISH</span><span class="p">]</span>
+        <span class="n">linktext</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">LINKTEXT</span><span class="p">]</span>
+        <span class="n">link</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">LINK</span><span class="p">]</span>
+        <span class="n">docname</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">DOC</span><span class="p">]</span>
+        <span class="n">picture</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">PICTURE</span><span class="p">]</span>
+        <span class="n">source</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">SOURCE</span><span class="p">]</span>
+        <span class="n">contact</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">CONTACT</span><span class="p">]</span>
+        <span class="n">media</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">MEDIA_HTML</span><span class="p">]</span>
+        <span class="n">media_thumb_url</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">MEDIA_THUMB</span><span class="p">]</span>
+        <span class="n">news_item</span> <span class="o">=</span> <span class="n">PressRelease</span><span class="p">(</span>
+            <span class="n">old_id</span><span class="o">=</span><span class="n">old_id</span><span class="p">,</span>
+            <span class="n">title</span><span class="o">=</span><span class="n">title</span><span class="p">,</span>
+            <span class="n">subtitle</span><span class="o">=</span><span class="n">subtitle</span><span class="p">,</span>
+            <span class="n">body</span><span class="o">=</span><span class="n">body</span><span class="p">,</span>
+            <span class="n">old_type</span><span class="o">=</span><span class="nb">type</span><span class="p">,</span>
+            <span class="n">summary</span><span class="o">=</span><span class="n">summary</span><span class="p">,</span>
+            <span class="n">date</span><span class="o">=</span><span class="n">date</span><span class="p">,</span>
+            <span class="n">datecreated</span><span class="o">=</span><span class="n">datecreated</span><span class="p">,</span>
+            <span class="n">author</span><span class="o">=</span><span class="n">author</span><span class="p">,</span>
+            <span class="n">updated</span><span class="o">=</span><span class="n">updated</span><span class="p">,</span>
+            <span class="n">sourceurl</span><span class="o">=</span><span class="n">sourceurl</span><span class="p">,</span>
+            <span class="n">publish</span><span class="o">=</span><span class="n">publish</span><span class="p">,</span>
+            <span class="n">linktext</span><span class="o">=</span><span class="n">linktext</span><span class="p">,</span>
+            <span class="n">link</span><span class="o">=</span><span class="n">link</span><span class="p">,</span>
+            <span class="n">docname</span><span class="o">=</span><span class="n">docname</span><span class="p">,</span>
+            <span class="n">picture</span><span class="o">=</span><span class="n">picture</span><span class="p">,</span>
+            <span class="n">source</span><span class="o">=</span><span class="n">source</span><span class="p">,</span>
+            <span class="n">contact</span><span class="o">=</span><span class="n">contact</span><span class="p">,</span>
+            <span class="n">media</span><span class="o">=</span><span class="n">media</span><span class="p">,</span>
+            <span class="n">media_thumb_url</span><span class="o">=</span><span class="n">media_thumb_url</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">news_item</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">print</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">import_other_content</span><span class="p">():</span>
+    <span class="n">cursor</span> <span class="o">=</span> <span class="n">setup_cursor</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">cursor</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">return</span>
+    <span class="c">## it&#39;s important selecting the id field, so that we can keep the publisher - book relationship</span>
+    <span class="n">sql</span> <span class="o">=</span> <span class="s">&quot;&quot;&quot;select * from articles left join articletype on articles.type = articletype.id WHERE articles.publish=1 AND NOT (articletype.parent = 16 OR articletype.id = 16 OR articletype.parent = 42 OR articletype.id = 42);&quot;&quot;&quot;</span>
+    <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">():</span>
+        <span class="n">old_id</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">OLD_ID</span><span class="p">]</span>
+        <span class="n">title</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">TITLE</span><span class="p">]</span>
+        <span class="n">subtitle</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">SUB_TITLE</span><span class="p">]</span>
+        <span class="n">body</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">BODY</span><span class="p">]</span>
+        <span class="nb">type</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">TYPE</span><span class="p">]</span>
+        <span class="n">summary</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">SUMMARY</span><span class="p">]</span>
+        <span class="n">date</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">DATE</span><span class="p">]</span>
+        <span class="n">datecreated</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">CREATED</span><span class="p">]</span>
+        <span class="n">author</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">AUTHOR</span><span class="p">]</span>
+        <span class="n">updated</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">UPDATED</span><span class="p">]</span>
+        <span class="n">sourceurl</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">SOURCEURL</span><span class="p">]</span>
+        <span class="n">publish</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">PUBLISH</span><span class="p">]</span>
+        <span class="n">linktext</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">LINKTEXT</span><span class="p">]</span>
+        <span class="n">link</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">LINK</span><span class="p">]</span>
+        <span class="n">docname</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">DOC</span><span class="p">]</span>
+        <span class="n">picture</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">PICTURE</span><span class="p">]</span>
+        <span class="n">source</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">SOURCE</span><span class="p">]</span>
+        <span class="n">contact</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">CONTACT</span><span class="p">]</span>
+        <span class="n">media</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">MEDIA_HTML</span><span class="p">]</span>
+        <span class="n">media_thumb_url</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">MEDIA_THUMB</span><span class="p">]</span>
+        <span class="n">news_item</span> <span class="o">=</span> <span class="n">OtherContent</span><span class="p">(</span>
+            <span class="n">old_id</span><span class="o">=</span><span class="n">old_id</span><span class="p">,</span>
+            <span class="n">title</span><span class="o">=</span><span class="n">title</span><span class="p">,</span>
+            <span class="n">subtitle</span><span class="o">=</span><span class="n">subtitle</span><span class="p">,</span>
+            <span class="n">body</span><span class="o">=</span><span class="n">body</span><span class="p">,</span>
+            <span class="n">old_type</span><span class="o">=</span><span class="nb">type</span><span class="p">,</span>
+            <span class="n">summary</span><span class="o">=</span><span class="n">summary</span><span class="p">,</span>
+            <span class="n">date</span><span class="o">=</span><span class="n">date</span><span class="p">,</span>
+            <span class="n">datecreated</span><span class="o">=</span><span class="n">datecreated</span><span class="p">,</span>
+            <span class="n">author</span><span class="o">=</span><span class="n">author</span><span class="p">,</span>
+            <span class="n">updated</span><span class="o">=</span><span class="n">updated</span><span class="p">,</span>
+            <span class="n">sourceurl</span><span class="o">=</span><span class="n">sourceurl</span><span class="p">,</span>
+            <span class="n">publish</span><span class="o">=</span><span class="n">publish</span><span class="p">,</span>
+            <span class="n">linktext</span><span class="o">=</span><span class="n">linktext</span><span class="p">,</span>
+            <span class="n">link</span><span class="o">=</span><span class="n">link</span><span class="p">,</span>
+            <span class="n">docname</span><span class="o">=</span><span class="n">docname</span><span class="p">,</span>
+            <span class="n">picture</span><span class="o">=</span><span class="n">picture</span><span class="p">,</span>
+            <span class="n">source</span><span class="o">=</span><span class="n">source</span><span class="p">,</span>
+            <span class="n">contact</span><span class="o">=</span><span class="n">contact</span><span class="p">,</span>
+            <span class="n">media</span><span class="o">=</span><span class="n">media</span><span class="p">,</span>
+            <span class="n">media_thumb_url</span><span class="o">=</span><span class="n">media_thumb_url</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">news_item</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">print</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+    <span class="n">import_news_items</span><span class="p">()</span>
+    <span class="n">import_press_release</span><span class="p">()</span>
+    <span class="n">import_other_content</span><span class="p">()</span>
+
+<span class="k">if</span> <span class="n">__name__</span><span class="o">==</span><span class="s">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>

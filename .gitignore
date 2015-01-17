@@ -1,0 +1,6 @@
+*.pyc
+*.sql
+.idea
+
+fabfile.py
+static/db.dump
